@@ -55,7 +55,7 @@ func Umount(c *gin.Context) {
 
 	drive := c.Query("drive")
 	if drive == "" {
-		session.Set(ErrorKeyUmount, "missing url-query-parameter: drive specified")
+		session.Set(ErrorKeyUmount, "missing url query parameter: drive")
 		_ = session.Save()
 		c.Redirect(http.StatusSeeOther, "/settings")
 		return
