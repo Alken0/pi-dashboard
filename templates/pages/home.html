@@ -1,0 +1,15 @@
+{{ define "content" }}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+    {{ range .features }}
+    <div class="col">
+    <a href="{{ .Link }}" target="{{ .Title }}" class="card shadow-sm text-decoration-none">
+        <img src="{{ .Image }}" class="bd-placeholder-img card-img-top" alt="{{ .Title }}">
+        <div class="card-body">
+        <h5 class="card-title">{{ .Title }}</h5>
+        <p class="card-text">{{ .Description }}</p>
+        </div>
+    </a>
+    </div>
+    {{ end }}
+</div>
+{{ end }}
