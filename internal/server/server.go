@@ -47,6 +47,13 @@ func loadTemplates(templatesDir string) multitemplate.Renderer {
 	return r
 }
 
+func ConfigMiddleware(cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("config", cfg)
+		c.Next()
+	}
+}
+
 func Run(cfg *config.Config) error {
 	r := gin.Default()
 
@@ -57,6 +64,7 @@ func Run(cfg *config.Config) error {
 	}
 
 	configureAuth(r, cfg)
+	r.Use(ConfigMiddleware(cfg))
 
 	r.HTMLRender = loadTemplates("./templates")
 	r.Static("/static", "./static")

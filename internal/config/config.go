@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	IP     string
-	Port   string
-	Secret string
+	IP      string
+	Port    string
+	Secret  string
+	MntPath string
 }
 
 func Load() *Config {
@@ -36,9 +37,15 @@ func Load() *Config {
 		panic("SECRET is too short")
 	}
 
+	mntPath := os.Getenv("MNT_PATH")
+	if mntPath == "" {
+		panic("MNT_PATH not set in environment or .env file")
+	}
+
 	return &Config{
-		IP:     ip,
-		Port:   port,
-		Secret: secret,
+		IP:      ip,
+		Port:    port,
+		Secret:  secret,
+		MntPath: mntPath,
 	}
 }

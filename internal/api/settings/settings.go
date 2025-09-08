@@ -1,66 +1,73 @@
 package settings
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
+	"pi-dashboard/internal/config"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	csrf "github.com/utrack/gin-csrf"
 )
 
-type Feature struct {
-	Image       string
-	Title       string
-	Description string
-	Link        string
-}
+const (
+	ErrorKeyReboot = "errorsSettingsReboot"
+	ErrorKeyUmount = "errorsSettingsUmount"
+)
 
 func SettingsPage(c *gin.Context) {
-	token := csrf.GetToken(c)
+	session := sessions.Default(c)
 
-	// List directories under /mnt
-	entries, err := os.ReadDir("C:/Users/jonas/Documents/pi-dashboard/cmd")
+	data, err := popSessionValues(session, ErrorKeyReboot, ErrorKeyUmount)
 	if err != nil {
-		println("err " + err.Error())
+		c.String(http.StatusInternalServerError, "failed to save session: %v", err)
 		return
 	}
 
-	// Filter only directories
-	devices := []string{}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			devices = append(devices, entry.Name())
-		}
+	basePath := c.MustGet("config").(*config.Config).MntPath
+	devices, err := listDirectories(basePath)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "failed to read directory: %v", err)
+		return
 	}
 
-	c.HTML(http.StatusOK, "settings.html", gin.H{
-		"csrf":    token,
-		"Devices": devices,
-	})
+	data["csrf"] = csrf.GetToken(c)
+	data["devices"] = devices
+	c.HTML(http.StatusOK, "settings.html", data)
 }
 
 func Reboot(c *gin.Context) {
 	session := sessions.Default(c)
 
 	cmd := exec.Command("sudo", "reboot")
-
 	if err := cmd.Run(); err != nil {
-		session.Set("error_msg", err.Error())
-		session.Save()
-		c.Redirect(http.StatusSeeOther, "/error")
+		session.Set(ErrorKeyReboot, err.Error())
+		_ = session.Save()
+		c.Redirect(http.StatusSeeOther, "/settings")
 		return
 	}
 
-	token := csrf.GetToken(c)
-	c.HTML(http.StatusOK, "settings.html", gin.H{
-		"csrf": token,
-	})
+	c.Redirect(http.StatusSeeOther, "/settings")
 }
 
-func ButtonClick2(c *gin.Context) {
-	fmt.Println("Button2 clicked!")
-	c.JSON(http.StatusOK, gin.H{"message": "Button2 clicked, check the terminal!"})
+func Umount(c *gin.Context) {
+	session := sessions.Default(c)
+
+	drive := c.Query("drive")
+	if drive == "" {
+		session.Set(ErrorKeyUmount, "missing url-query-parameter: drive specified")
+		_ = session.Save()
+		c.Redirect(http.StatusSeeOther, "/settings")
+		return
+	}
+
+	cmd := exec.Command("sudo", "umount", "/mnt/"+drive)
+	if err := cmd.Run(); err != nil {
+		session.Set(ErrorKeyUmount, err.Error())
+		_ = session.Save()
+		c.Redirect(http.StatusSeeOther, "/settings")
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/settings")
 }

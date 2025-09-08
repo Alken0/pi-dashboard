@@ -4,8 +4,13 @@
         <input type="hidden" name="_csrf" value="{{ .csrf }}">
         <button type="submit" class="btn btn-secondary w-100">Pi Neustarten</button>
     </form>
+    {{if .errorsSettingsReboot}}
+    <div class="alert alert-danger my-1" role="alert">
+        {{ .errorsSettingsReboot }}
+    </div>
+    {{end}}
 
-     {{if .Devices}}
+    {{if .devices}}
     <table class="table table-striped table-bordered mt-3">
         <thead>
             <tr>
@@ -15,12 +20,12 @@
             </tr>
         </thead>
         <tbody>
-            {{range $index, $device := .Devices}}
+            {{range $index, $device := .devices}}
             <tr>
                 <td>{{$index}}</td>
                 <td>{{$device}}</td>
                 <td>
-                    <form action="/settings/eject-harddrive?path={{$device}}" method="POST">
+                    <form action="/settings/umount?drive={{$device}}" method="POST">
                         <input type="hidden" name="_csrf" value="{{ $.csrf }}">
                         <button type="submit" class="btn btn-secondary">Auswerfen</button>
                     </form>
@@ -31,6 +36,11 @@
     </table>
     {{else}}
     <p>No devices mounted under /mnt/</p>
+    {{end}}
+    {{if .errorsSettingsUmount}}
+    <div class="alert alert-danger my-1" role="alert">
+        {{ .errorsSettingsUmount }}
+    </div>
     {{end}}
 </div>
 {{ end }}
