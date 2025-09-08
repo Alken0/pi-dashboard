@@ -25,7 +25,7 @@ func RegisterRoutes(r *gin.Engine) {
 		session.Delete("error_msg")
 		session.Save()
 
-		c.HTML(http.StatusInternalServerError, "error.page.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"Error": errMsg,
 		})
 	})
