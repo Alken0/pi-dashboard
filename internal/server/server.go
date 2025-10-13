@@ -1,9 +1,13 @@
 package server
 
 import (
+	"fmt"
+	"log"
+	"net/http"
 	"path/filepath"
 	"pi-dashboard/internal/api"
 	"pi-dashboard/internal/config"
+	"strings"
 
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-contrib/sessions"
@@ -18,7 +22,21 @@ func configureAuth(r *gin.Engine, cfg *config.Config) {
 	r.Use(csrf.Middleware(csrf.Options{
 		Secret: cfg.Secret,
 		ErrorFunc: func(c *gin.Context) {
-			c.String(400, "CSRF token mismatch")
+			var allErrors []string
+			for _, e := range c.Errors {
+				allErrors = append(allErrors, e.Error())
+			}
+
+			// Build the message
+			msg := "CSRF token mismatch"
+			if len(allErrors) > 0 {
+				msg = fmt.Sprintf("CSRF errors: %s", strings.Join(allErrors, " | "))
+			}
+
+			// Log and respond
+			log.Printf("CSRF validation failed: %s", msg)
+
+			c.String(http.StatusBadRequest, msg)
 			c.Abort()
 		},
 	}))
