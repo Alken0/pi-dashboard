@@ -1,13 +1,11 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 	"pi-dashboard/internal/api"
 	"pi-dashboard/internal/config"
-	"strings"
 
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-contrib/sessions"
@@ -18,25 +16,17 @@ import (
 
 func configureAuth(r *gin.Engine, cfg *config.Config) {
 	store := cookie.NewStore([]byte(cfg.Secret))
+	store.Options(sessions.Options{
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // must be false if using HTTP on raspberrypi
+	})
 	r.Use(sessions.Sessions("mysession", store))
 	r.Use(csrf.Middleware(csrf.Options{
 		Secret: cfg.Secret,
 		ErrorFunc: func(c *gin.Context) {
-			var allErrors []string
-			for _, e := range c.Errors {
-				allErrors = append(allErrors, e.Error())
-			}
-
-			// Build the message
-			msg := "CSRF token mismatch"
-			if len(allErrors) > 0 {
-				msg = fmt.Sprintf("CSRF errors: %s", strings.Join(allErrors, " | "))
-			}
-
-			// Log and respond
-			log.Printf("CSRF validation failed: %s", msg)
-
-			c.String(http.StatusBadRequest, msg)
+			log.Printf("CSRF validation failed")
+			c.String(http.StatusBadRequest, "CSRF validation failed")
 			c.Abort()
 		},
 	}))
@@ -89,5 +79,4 @@ func Run(cfg *config.Config) error {
 	api.RegisterRoutes(r)
 
 	return r.Run(cfg.IP + ":" + cfg.Port)
-
 }
