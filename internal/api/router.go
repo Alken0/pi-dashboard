@@ -12,7 +12,6 @@ func RegisterRoutes(r *gin.Engine) {
 	r.GET("/", home.HomePage)
 
 	// Settings route
-	r.GET("/settings", settings.SettingsPage)
-	r.POST("/settings/reboot", settings.Reboot)
-	r.POST("/settings/umount", settings.Umount)
+	r.GET("/settings", settings.Get)
+	r.POST("/settings", settings.Post)
 }

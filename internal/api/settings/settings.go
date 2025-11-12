@@ -1,73 +1,90 @@
 package settings
 
 import (
+	"fmt"
 	"net/http"
 	"os/exec"
 	"pi-dashboard/internal/config"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	csrf "github.com/utrack/gin-csrf"
 )
 
 const (
-	ErrorKeyReboot = "errorsSettingsReboot"
-	ErrorKeyUmount = "errorsSettingsUmount"
+	ErrorGeneral     = "errorsGeneral"
+	ErrorKeyShutdown = "errorsSettingsShutdown"
+	ErrorKeyReboot   = "errorsSettingsReboot"
+	ErrorKeyUmount   = "errorsSettingsUmount"
 )
 
-func SettingsPage(c *gin.Context) {
-	session := sessions.Default(c)
+func Get(c *gin.Context) {
+	renderPage(c, nil)
+}
 
-	data, err := popSessionValues(session, ErrorKeyReboot, ErrorKeyUmount)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "failed to save session: %v", err)
-		return
+func Post(c *gin.Context) {
+	switch c.Query("method") {
+	case "shutdown":
+		Shutdown(c)
+	case "reboot":
+		Reboot(c)
+	case "umount":
+		Umount(c)
+	default:
+		renderPage(c, map[string]any{ErrorGeneral: "missing/invalid query-parameter 'method'"})
 	}
+}
+
+func renderPage(c *gin.Context, data map[string]any) {
+	if data == nil {
+		data = make(map[string]any)
+	}
+
+	data["csrf"] = csrf.GetToken(c)
 
 	basePath := c.MustGet("config").(*config.Config).MntPath
 	devices, err := listDirectories(basePath)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "failed to read directory: %v", err)
+		data[ErrorGeneral] = fmt.Sprintf("failed to read directory: %v", err)
+		c.HTML(http.StatusOK, "settings.html", data)
 		return
 	}
-
-	data["csrf"] = csrf.GetToken(c)
 	data["devices"] = devices
+
 	c.HTML(http.StatusOK, "settings.html", data)
 }
 
-func Reboot(c *gin.Context) {
-	session := sessions.Default(c)
-
-	cmd := exec.Command("sudo", "reboot")
+func Shutdown(c *gin.Context) {
+	cmd := exec.Command("shutdown", "now")
 	if err := cmd.Run(); err != nil {
-		session.Set(ErrorKeyReboot, err.Error())
-		_ = session.Save()
-		c.Redirect(http.StatusSeeOther, "/settings")
+		renderPage(c, map[string]any{ErrorKeyShutdown: err.Error()})
 		return
 	}
 
-	c.Redirect(http.StatusSeeOther, "/settings")
+	renderPage(c, nil)
+}
+
+func Reboot(c *gin.Context) {
+	cmd := exec.Command("reboot")
+	if err := cmd.Run(); err != nil {
+		renderPage(c, map[string]any{ErrorKeyReboot: err.Error()})
+		return
+	}
+
+	renderPage(c, nil)
 }
 
 func Umount(c *gin.Context) {
-	session := sessions.Default(c)
-
 	drive := c.Query("drive")
 	if drive == "" {
-		session.Set(ErrorKeyUmount, "missing url query parameter: drive")
-		_ = session.Save()
-		c.Redirect(http.StatusSeeOther, "/settings")
+		renderPage(c, map[string]any{ErrorKeyUmount: "missing url query parameter: drive"})
 		return
 	}
 
-	cmd := exec.Command("sudo", "umount", "/mnt/"+drive)
+	cmd := exec.Command("umount", "/mnt/"+drive)
 	if err := cmd.Run(); err != nil {
-		session.Set(ErrorKeyUmount, err.Error())
-		_ = session.Save()
-		c.Redirect(http.StatusSeeOther, "/settings")
+		renderPage(c, map[string]any{ErrorKeyUmount: err.Error()})
 		return
 	}
 
-	c.Redirect(http.StatusSeeOther, "/settings")
+	renderPage(c, nil)
 }
