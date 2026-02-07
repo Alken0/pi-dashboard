@@ -93,13 +93,12 @@ func Umount(c *gin.Context) {
 }
 
 func Mount(c *gin.Context) {
-	cmd := exec.Command("sudo", "mount", "-a")
+	// does not work for some reason
+	cmd := exec.Command("mount", "-a")
 	if err := cmd.Run(); err != nil {
 		renderPage(c, map[string]any{ErrorKeyMount: err.Error()})
 		return
 	}
 
 	renderPage(c, nil)
-	
 }
-
