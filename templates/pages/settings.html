@@ -57,5 +57,14 @@
         {{ .errorsSettingsUmount }}
     </div>
     {{end}}
+    <form action="/settings?method=mount" method="POST">
+        <input type="hidden" name="_csrf" value="{{ $.csrf }}">
+        <button type="submit" class="btn btn-secondary  w-100">Alles Mounten</button>
+    </form>
+    {{if .errorsSettingsMount}}
+    <div class="alert alert-danger mt-1 mb-3" role="alert">
+        {{ .errorsSettingsMount }}
+    </div>
+    {{end}}
 </div>
 {{ end }}

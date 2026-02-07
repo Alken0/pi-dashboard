@@ -15,6 +15,7 @@ const (
 	ErrorKeyShutdown = "errorsSettingsShutdown"
 	ErrorKeyReboot   = "errorsSettingsReboot"
 	ErrorKeyUmount   = "errorsSettingsUmount"
+	ErrorKeyMount    = "errorsSettingsMount"
 )
 
 func Get(c *gin.Context) {
@@ -29,6 +30,8 @@ func Post(c *gin.Context) {
 		Reboot(c)
 	case "umount":
 		Umount(c)
+	case "mount":
+		Mount(c)
 	default:
 		renderPage(c, map[string]any{ErrorGeneral: "missing/invalid query-parameter 'method'"})
 	}
@@ -88,3 +91,15 @@ func Umount(c *gin.Context) {
 
 	renderPage(c, nil)
 }
+
+func Mount(c *gin.Context) {
+	cmd := exec.Command("mount", "-a")
+	if err := cmd.Run(); err != nil {
+		renderPage(c, map[string]any{ErrorKeyMount: err.Error()})
+		return
+	}
+
+	renderPage(c, nil)
+	
+}
+
